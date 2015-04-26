@@ -48,10 +48,10 @@ public class BaggingRanking extends ASSearch implements OptionHandler {
 			BitSet newSet = new BitSet(numAttribs);
 			int count = 0;
                         
-//                        if((numAttribs - selectedAttrs.size()) < m_attrsInRun) {
-//                            m_runCount = i - 1;
-//                            break;
-//                        }
+                        if((numAttribs - selectedAttrs.cardinality()) < m_attrsInRun) {
+                            m_runCount = i - 1;
+                            break;
+                        }
                         
 			while(count < m_attrsInRun) {
 				position = randomGen.nextInt(numAttribs);
