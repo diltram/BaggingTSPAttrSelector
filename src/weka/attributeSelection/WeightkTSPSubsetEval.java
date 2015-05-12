@@ -15,10 +15,9 @@ import weka.core.Capabilities.Capability;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.Option;
-import weka.core.OptionHandler;
 import weka.core.Utils;
 
-public class TSPSubsetEval extends ASEvaluation implements SubsetEvaluator, OptionHandler {
+public class WeightkTSPSubsetEval extends TSPAbstractSubsetEvaluator {
 
     private static final long serialVersionUID = 5554640140623511699L;
     private double m_objsInRun;
@@ -32,7 +31,7 @@ public class TSPSubsetEval extends ASEvaluation implements SubsetEvaluator, Opti
     private int m_inst_second_class;
     private List<ResultObject> m_result;
 
-    public TSPSubsetEval() {
+    public WeightkTSPSubsetEval() {
         resetOptions();
     }
 
@@ -66,28 +65,35 @@ public class TSPSubsetEval extends ASEvaluation implements SubsetEvaluator, Opti
                 System.err.println("Calculating average scores");
             }
             m_result = calculateAverageScoreList(subset);
+
+            if (m_debug) {
+                System.err.println("Sorting results");
+            }
             sortByScore(m_result);
         }
 
         return 0;
     }
 
-    private List<ResultObject> calculateAverageScoreList(BitSet subset) {
+    private List<ResultObject> calculateAverageScoreList(BitSet subset) throws Exception {
         List<ResultObject> result = new ArrayList<>();
         double first_indicator, second_indicator;
-        double first_probability, second_probability, score;
+        double first_probability, second_probability, score, avg_val;
 
         for (int i = subset.nextSetBit(0); i >= 0; i = subset.nextSetBit(i + 1)) {
             for (int j = subset.nextSetBit(1); j >= 0; j = subset.nextSetBit(j + 1)) {
                 if (i == j) {
                     break;
                 }
-                first_indicator = getAvgClassIndicator(i, j, m_instances, m_first_class);
-                second_indicator = getAvgClassIndicator(i, j, m_instances, m_second_class);
+                avg_val = calculateAvgVal(i, j, m_instances);
+
+                first_indicator = getAvgClassIndicator(i, j, m_instances, m_first_class, avg_val);
+                second_indicator = getAvgClassIndicator(i, j, m_instances, m_second_class, avg_val);
 
                 first_probability = getAvgProbability(first_indicator, m_inst_first_class);
                 second_probability = getAvgProbability(second_indicator, m_inst_second_class);
                 score = getScore(first_probability, second_probability);
+                
                 result.add(new ResultObject(i, j, score));
             }
         }
@@ -95,39 +101,46 @@ public class TSPSubsetEval extends ASEvaluation implements SubsetEvaluator, Opti
         return result;
     }
 
-    private double getAvgProbability(double indicator, int instances_count) {
+    private double getAvgProbability(double indicator, int instances_count) {        
         return indicator / instances_count;
     }
 
     private double getAvgClassIndicator(int i, int j, BitSet samples,
-            double instance_class) {
+            double instance_class, double avg_val) {
         double indicator = 0;
         Instance instance;
         for (int n = samples.nextSetBit(0); n >= 0; n = samples.nextSetBit(n + 1)) {
             instance = m_data.instance(n);
             if (instance.classValue() == instance_class) {
-                indicator += getAvgIndicator(instance, i, j);
+                indicator += getAvgIndicator(instance, i, j, avg_val);
             }
         }
         return indicator;
     }
 
-    private double getAvgIndicator(Instance instance, int i, int j) {
-        return instance.value(i) - instance.value(j);
+    private double getAvgIndicator(Instance instance, int i, int j, double avg_val) {
+        double divided = 0;
+        if (instance.value(i) != 0 && instance.value(j) != 0) {
+            divided = instance.value(i) / instance.value(j);
+            return divided / (avg_val + divided);
+        }
+        return 0;
     }
 
     private List<ResultObject> calculateScoreList(BitSet subset) {
         List<ResultObject> result = new ArrayList<>();
         double first_indicator, second_indicator;
-        double first_probability, second_probability, score;
+        double first_probability, second_probability, score, avg_val;
 
         for (int i = subset.nextSetBit(0); i >= 0; i = subset.nextSetBit(i + 1)) {
             for (int j = subset.nextSetBit(1); j >= 0; j = subset.nextSetBit(j + 1)) {
                 if (i == j) {
                     break;
                 }
-                first_indicator = getClassIndicator(i, j, m_instances, m_first_class);
-                second_indicator = getClassIndicator(i, j, m_instances, m_second_class);
+                avg_val = calculateAvgVal(i, j, m_instances);
+
+                first_indicator = getClassIndicator(i, j, m_instances, m_first_class, avg_val);
+                second_indicator = getClassIndicator(i, j, m_instances, m_second_class, avg_val);
 
                 first_probability = getProbability(first_indicator, m_inst_first_class);
                 second_probability = getProbability(second_indicator, m_inst_second_class);
@@ -143,18 +156,15 @@ public class TSPSubsetEval extends ASEvaluation implements SubsetEvaluator, Opti
         return m_result;
     }
 
-    private void sortByScore(List<ResultObject> result) {
-        Collections.sort(result, new Comparator<ResultObject>() {
-            @Override
-            public int compare(final ResultObject object1, final ResultObject object2) {
-                if (object1.getScore() < object2.getScore()) {
-                    return 1;
-                } else if (object1.getScore() == object2.getScore()) {
-                    return 0;
-                }
-                return -1;
-            }
-        });
+    private double calculateAvgVal(int i, int j, BitSet instances) {
+        double value = 0;
+        Instance instance;
+
+        for (int n = instances.nextSetBit(0); n >= 0; n = instances.nextSetBit(n + 1)) {
+            instance = m_data.instance(n);
+            value += instance.value(i) / instance.value(j);
+        }
+        return value / instances.cardinality();
     }
 
     private double getScore(double first_probability, double second_probability) {
@@ -165,20 +175,21 @@ public class TSPSubsetEval extends ASEvaluation implements SubsetEvaluator, Opti
         return (1.0 / instances_count) * indicator;
     }
 
-    private double getClassIndicator(int i, int j, BitSet samples, double instance_class) {
+    private double getClassIndicator(int i, int j, BitSet samples,
+            double instance_class, double avg_val) {
         double indicator = 0;
         Instance instance;
         for (int n = samples.nextSetBit(0); n >= 0; n = samples.nextSetBit(n + 1)) {
             instance = m_data.instance(n);
             if (instance.classValue() == instance_class) {
-                indicator += getIndicator(instance, i, j);
+                indicator += getIndicator(instance, i, j, avg_val);
             }
         }
         return indicator;
     }
 
-    private double getIndicator(Instance instance, int i, int j) {
-        if (instance.value(i) < instance.value(j)) {
+    private double getIndicator(Instance instance, int i, int j, double avg_val) {
+        if ((instance.value(i) / instance.value(j)) < avg_val) {
             return 1.0;
         }
         return 0.0;

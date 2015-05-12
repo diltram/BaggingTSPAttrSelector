@@ -15,18 +15,17 @@ import weka.core.Capabilities.Capability;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.Option;
-import weka.core.OptionHandler;
 import weka.core.Utils;
 
-public class TSPSubsetEval extends ASEvaluation implements SubsetEvaluator, OptionHandler {
+public class TSPSubsetEval extends TSPAbstractSubsetEvaluator {
 
     private static final long serialVersionUID = 5554640140623511699L;
     private double m_objsInRun;
     private int m_countObjects;
     private boolean m_debug;
     private Instances m_data;
-    private double m_first_class = 0.0;
-    private double m_second_class = 1.0;
+    private final double m_first_class = 0.0;
+    private final double m_second_class = 1.0;
     private BitSet m_instances;
     private int m_inst_first_class;
     private int m_inst_second_class;
@@ -139,22 +138,9 @@ public class TSPSubsetEval extends ASEvaluation implements SubsetEvaluator, Opti
         return result;
     }
 
+    @Override
     public List<ResultObject> getResultList() {
         return m_result;
-    }
-
-    private void sortByScore(List<ResultObject> result) {
-        Collections.sort(result, new Comparator<ResultObject>() {
-            @Override
-            public int compare(final ResultObject object1, final ResultObject object2) {
-                if (object1.getScore() < object2.getScore()) {
-                    return 1;
-                } else if (object1.getScore() == object2.getScore()) {
-                    return 0;
-                }
-                return -1;
-            }
-        });
     }
 
     private double getScore(double first_probability, double second_probability) {
