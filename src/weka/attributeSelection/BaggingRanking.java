@@ -20,9 +20,7 @@ public class BaggingRanking extends ASSearch implements OptionHandler {
 
     private static final long serialVersionUID = -6622671521414498563L;
     private int m_runCount;
-    private boolean m_returnAttrs;
     private double m_attrsInRun;
-    private int m_objsInRun;
     private int m_topAttrs;
     private boolean m_debug;
 
@@ -35,7 +33,7 @@ public class BaggingRanking extends ASSearch implements OptionHandler {
         int numAttribs = data.numAttributes();
         int position;
         BitSet selectedAttrs = new BitSet(numAttribs);
-        m_attrsInRun = (int) Math.sqrt(numAttribs); // pomyśleć nad sposobem wybierania ilości elementów
+        m_attrsInRun = (int) Math.sqrt(numAttribs) * 3;
         Random rand = new Random();
         Random randomGen = data.getRandomNumberGenerator(rand.nextLong());
         List<List<ResultObject>> results = new ArrayList<>();
@@ -48,18 +46,18 @@ public class BaggingRanking extends ASSearch implements OptionHandler {
             BitSet newSet = new BitSet(numAttribs);
             int count = 0;
 
-            if ((numAttribs - selectedAttrs.cardinality()) < m_attrsInRun) {
-                m_runCount = i - 1;
-                break;
-            }
-
             while (count < m_attrsInRun) {
                 position = randomGen.nextInt(numAttribs);
-                if (position != data.classIndex() && !newSet.get(position) && !selectedAttrs.get(position)) {
+                if (position != data.classIndex() && !newSet.get(position)) {
                     newSet.set(position, true);
                     selectedAttrs.set(position, true);
                     count++;
                 }
+            }
+            if (m_debug) {
+                System.err.println("NumAttribs: " + numAttribs);
+                System.err.println("Count: " + count);
+                System.err.println("Ilość selected attrs: " + selectedAttrs.cardinality());
             }
             ASEvaluator.evaluateSubset(newSet);
             results.add(ASEvaluator.getResultList().subList(0, m_topAttrs));
@@ -110,11 +108,11 @@ public class BaggingRanking extends ASSearch implements OptionHandler {
             @Override
             public int compare(AttributeRank o1, AttributeRank o2) {
                 if (o1.getRank() < o2.getRank()) {
-                    return 1;
+                    return -1;
                 } else if (o1.getRank() == o2.getRank()) {
                     return 0;
                 }
-                return -1;
+                return 1;
             }
         });
 
@@ -132,7 +130,8 @@ public class BaggingRanking extends ASSearch implements OptionHandler {
     }
 
     private double calculateRank(double d, int i) {
-        return Math.log(i) / d;
+//        return Math.log(i) / d;
+        return i;
     }
 
     @Override
@@ -174,13 +173,7 @@ public class BaggingRanking extends ASSearch implements OptionHandler {
 
         options.add("-TA");
         options.add("" + getTopAttrs());
-
-        options.add("-OR");
-        options.add("" + getObjsInRun());
-
-        options.add("-RET");
-        options.add("" + getReturnAttrs());
-
+        
         options.add("-D");
         options.add("" + getDebug());
 
@@ -189,10 +182,7 @@ public class BaggingRanking extends ASSearch implements OptionHandler {
 
     private void resetOptions() {
         this.setRunCount(100);
-        this.setAttrsInRun(0.66);
-        this.setObjsInRun(m_objsInRun);
-        this.setReturnAttrs(true);
-        this.setTopAttrs(100);
+        this.setTopAttrs(200);
         this.setDebug(true);
     }
 
@@ -202,30 +192,6 @@ public class BaggingRanking extends ASSearch implements OptionHandler {
 
     public void setRunCount(int runCount) {
         m_runCount = runCount;
-    }
-
-    public boolean getReturnAttrs() {
-        return m_returnAttrs;
-    }
-
-    public void setReturnAttrs(boolean returnAttrs) {
-        m_returnAttrs = returnAttrs;
-    }
-
-    public double getAttrsInRun() {
-        return m_attrsInRun;
-    }
-
-    public void setAttrsInRun(double attrsInRun) {
-        m_attrsInRun = attrsInRun;
-    }
-
-    public int getObjsInRun() {
-        return m_objsInRun;
-    }
-
-    public void setObjsInRun(int objsInRun) {
-        m_objsInRun = objsInRun;
     }
 
     public int getTopAttrs() {

@@ -3,7 +3,6 @@ package weka.attributeSelection;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Random;
@@ -174,8 +173,8 @@ public class TSPSubsetEval extends TSPAbstractSubsetEvaluator {
     public Enumeration<Option> listOptions() {
         Vector<Option> newVector = new Vector<>(3);
 
-        newVector.addElement(new Option("\tCount of top pairs.", "C", 100, "-C <top pairs>"));
-        newVector.addElement(new Option("\tObjects per test in %.", "O", 66, "-O <objects percentage>"));
+        newVector.addElement(new Option("\tCount of top pairs.", "C", 80, "-C <top pairs>"));
+        newVector.addElement(new Option("\tObjects per test in %.", "O", 41, "-O <objects percentage>"));
         newVector.addElement(new Option("\tOutput debugging info.", "D", 0, "-D"));
 
         return newVector.elements();
@@ -207,7 +206,7 @@ public class TSPSubsetEval extends TSPAbstractSubsetEvaluator {
     }
 
     public void resetOptions() {
-        setDebug(true);
+        setDebug(false);
         setObjsInRun(66);
     }
 

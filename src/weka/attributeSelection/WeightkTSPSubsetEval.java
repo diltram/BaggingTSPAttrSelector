@@ -3,7 +3,6 @@ package weka.attributeSelection;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Random;
@@ -131,9 +130,15 @@ public class WeightkTSPSubsetEval extends TSPAbstractSubsetEvaluator {
         List<ResultObject> result = new ArrayList<>();
         double first_indicator, second_indicator;
         double first_probability, second_probability, score, avg_val;
-
+        int all_vals = (int) Math.pow(subset.cardinality(), subset.cardinality());
+        int curr = 0;
+        
         for (int i = subset.nextSetBit(0); i >= 0; i = subset.nextSetBit(i + 1)) {
             for (int j = subset.nextSetBit(1); j >= 0; j = subset.nextSetBit(j + 1)) {
+                if(this.m_debug) {
+                    System.err.println("Wyliczona wartość " + curr + " z " + all_vals);
+                }
+                
                 if (i == j) {
                     break;
                 }
@@ -146,6 +151,8 @@ public class WeightkTSPSubsetEval extends TSPAbstractSubsetEvaluator {
                 second_probability = getProbability(second_indicator, m_inst_second_class);
                 score = getScore(first_probability, second_probability);
                 result.add(new ResultObject(i, j, score));
+                
+                curr++;
             }
         }
 
@@ -199,8 +206,8 @@ public class WeightkTSPSubsetEval extends TSPAbstractSubsetEvaluator {
     public Enumeration<Option> listOptions() {
         Vector<Option> newVector = new Vector<>(3);
 
-        newVector.addElement(new Option("\tCount of top pairs.", "C", 100, "-C <top pairs>"));
-        newVector.addElement(new Option("\tObjects per test in %.", "O", 66, "-O <objects percentage>"));
+        newVector.addElement(new Option("\tCount of top pairs.", "C", 80, "-C <top pairs>"));
+        newVector.addElement(new Option("\tObjects per test in %.", "O", 41, "-O <objects percentage>"));
         newVector.addElement(new Option("\tOutput debugging info.", "D", 0, "-D"));
 
         return newVector.elements();
@@ -232,7 +239,7 @@ public class WeightkTSPSubsetEval extends TSPAbstractSubsetEvaluator {
     }
 
     public void resetOptions() {
-        setDebug(true);
+        setDebug(false);
         setObjsInRun(66);
     }
 
@@ -268,7 +275,6 @@ public class WeightkTSPSubsetEval extends TSPAbstractSubsetEvaluator {
     public void setInstancesCount(int countObjects) {
         m_countObjects = countObjects;
         m_instances = new BitSet(m_countObjects);
-//        Random random = m_data.getRandomNumberGenerator(1);
         Random random = new Random();
 
         while (m_instances.length() < m_countObjects) {
